@@ -7,11 +7,13 @@
 @LastEditors : -
 @Description : 项目视图
 """
+from datetime import timedelta, datetime
 from typing import Dict
 
-from django.core.exceptions import ObjectDoesNotExist, ValidationError
+from django.core.exceptions import ObjectDoesNotExist, ValidationError, MultipleObjectsReturned
 from django.db import IntegrityError, transaction
 from django.db.models import Count
+from django.db.models.functions import TruncDate
 from django.utils.decorators import method_decorator
 from django.utils import timezone
 from rest_framework import status
@@ -19,6 +21,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import GenericViewSet
 
+from lunarlink.utils.prepare import get_project_detail_v2, get_jira_core_case_cover_rate
 from backend.utils import pagination, permissions
 from lunarlink import models
 from lunarlink import serializers
@@ -136,25 +139,53 @@ class ProjectView(GenericViewSet):
 
         return Response(response.PROJECT_DELETE_SUCCESS)
 
+
+class ProjectViewDetails(GenericViewSet):
+    serializer_class = serializers.ProjectSerializer
+    pagination_class = pagination.MyPageNumberPagination
+
     @method_decorator(request_log(level="INFO"))
     def single(self, request, pk):
         """
         获取单个项目相关统计信息
         """
         try:
+
             queryset = models.Project.objects.get(id=pk)
         except ObjectDoesNotExist:
             return Response(response.PROJECT_NOT_EXISTS)
+        except MultipleObjectsReturned:
+            return Response({"error": "Multiple projects found with the same ID"}, status=500)
 
         serializer = self.get_serializer(queryset, many=False)
 
-        project_info = prepare.get_project_detail_v2(pk=pk)
+        project_info = get_project_detail_v2(pk=pk)
         # TODO: 屏蔽jira核心用例统计，考虑接入TAPD
-        jira_core_case_cover_rate: Dict = prepare.get_jira_core_case_cover_rate(pk=pk)
-        project_info.update(jira_core_case_cover_rate)
-        project_info.update(serializer.data)
+        jira_core_case_cover_rate = get_jira_core_case_cover_rate(pk=pk)
+
+        # 合并更新操作
+        project_info.update({**jira_core_case_cover_rate, **serializer.data})
 
         return Response(project_info)
+
+    # def single(self, request, pk):
+    #     """
+    #     获取单个项目相关统计信息
+    #     """
+    #     try:
+    #         queryset = models.Project.objects.get(id=pk)
+    #     except ObjectDoesNotExist:
+    #         return Response(response.PROJECT_NOT_EXISTS)
+    #
+    #     serializer = self.get_serializer(queryset, many=False)
+    #
+    #     project_info = prepare.get_project_detail_v2(pk=pk)
+    #     # TODO: 屏蔽jira核心用例统计，考虑接入TAPD
+    #     jira_core_case_cover_rate: Dict = prepare.get_jira_core_case_cover_rate(pk=pk)
+    #     project_info.update(jira_core_case_cover_rate)
+    #     project_info.update(serializer.data)
+    #
+    #     return Response(project_info)
 
     @method_decorator(request_log(level="INFO"))
     def yapi_info(self, request, pk):
@@ -319,25 +350,37 @@ class VisitView(GenericViewSet):
     queryset = models.Visit.objects
 
     def list(self, request):
-        project = request.query_params.get("project")
-        # 查询项目前7天的访问记录
-        # 根据日期分组
-        # 统计每天的条数
-        recent7days = [day.get_day(d)[5:] for d in range(-7, 0)]
-        count_data = (
-            self.get_queryset()
-            .filter(
-                project=project, create_time__range=(day.get_day(-7), day.get_day())
+        try:
+            project = request.query_params.get("project")
+            if not project:
+                return Response({"error": "Project parameter is required"}, status=400)
+            # 计算前7天的日期范围
+            end_date = datetime.now().date()
+            start_date = end_date - timedelta(days=7)
+            # 查询项目前7天的访问记录
+            queryset = self.get_queryset().filter(
+                project=project,
+                create_time__range=(start_date, end_date)
             )
-            .extra(select={"create_time": "DATE_FORMAT(create_time, '%%m-%%d')"})
-            .values("create_time")
-            .annotate(counts=Count("id"))
-            .values("create_time", "counts")
-        )
-
-        create_time_report_map = {
-            data["create_time"]: data["counts"] for data in count_data
-        }
-        report_count = [create_time_report_map.get(d, 0) for d in recent7days]
-
-        return Response({"recent7days": recent7days, "report_count": report_count})
+            # 根据日期分组并统计每天的条数
+            count_data = (
+                queryset.annotate(create_date=TruncDate('create_time'))
+                .values("create_date")
+                .annotate(counts=Count("id"))
+                .values("create_date", "counts")
+            )
+            # 生成最近7天的日期列表
+            recent7days = [(end_date + timedelta(days=d)).strftime("%m-%d") for d in range(-7, 0)]
+            # 构建日期-计数字典
+            create_time_report_map = {
+                data["create_date"].strftime("%m-%d"): data["counts"] for data in count_data
+            }
+            # 生成报告数据
+            report_count = [create_time_report_map.get(d, 0) for d in recent7days]
+            return Response({"recent7days": recent7days, "report_count": report_count})
+        except ObjectDoesNotExist:
+            return Response({"error": "Project not found"}, status=404)
+        except ValueError as ve:
+            return Response({"error": str(ve)}, status=400)
+        except Exception as e:
+            return Response({"error": str(e)}, status=500)

@@ -28,7 +28,6 @@ from lunarlink import models
 from lunarlink.utils.day import get_day, get_week, get_month
 from lunarlink.utils.parser import Format
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -200,7 +199,7 @@ def aggregate_apis_bydate(date_type: str, is_yapi=False) -> List:
 
 
 def aggregate_data_by_date(
-    date_type: str, model: Type[Model]
+        date_type: str, model: Type[Model]
 ) -> Tuple[List[str], Dict[str, List[int]]]:
     """
     按照日，周，月统计不同模型中的数据项数量。
@@ -238,8 +237,8 @@ def aggregate_data_by_date(
 
 
 def extract_top_creators_and_counts(
-    count_data: QuerySet,
-    recent_six_date_list: List[str],
+        count_data: QuerySet,
+        recent_six_date_list: List[str],
 ) -> Tuple[List[str], Dict[str, List[int]]]:
     """
     从聚合数据中提取创建人列表和创建人在每个时间段内创建的数据项数量，并找出前5名
@@ -374,7 +373,7 @@ def get_jira_core_case_cover_rate(pk) -> Dict:
         core_case_cover_rate = "0.00"
     else:
         core_case_cover_rate = "%.2f" % (
-            (covered_case_count / jira_core_case_count) * 100
+                (covered_case_count / jira_core_case_count) * 100
         )
 
     return {
@@ -409,12 +408,12 @@ def tree_end(params, project):
 
 
 def generate_record_casestep(
-    api_ids: List,
-    body: List,
-    case_obj,
-    config_obj,
-    user,
-    is_generate_api: bool = False,
+        api_ids: List,
+        body: List,
+        case_obj,
+        config_obj,
+        user,
+        is_generate_api: bool = False,
 ):
     """
     生成录制测试用例步骤
@@ -432,8 +431,8 @@ def generate_record_casestep(
 
     for index, item in enumerate(body):
         if (
-            item["body"].get("method") == "config"
-            or item["body"].get("request") == "config"
+                item["body"].get("method") == "config"
+                or item["body"].get("request") == "config"
         ):
             name = config_obj.name
             url = config_obj.base_url
@@ -465,9 +464,9 @@ def generate_record_casestep(
 
 
 def generate_casestep(
-    step_body_list: List,
-    case_obj,
-    creator,
+        step_body_list: List,
+        case_obj,
+        creator,
 ):
     """
     生成用例集步骤
@@ -490,8 +489,8 @@ def generate_casestep(
             method = format_http.method
         except KeyError:
             if (
-                item["body"].get("method") == "config"
-                or item["body"].get("request") == "config"
+                    item["body"].get("method") == "config"
+                    or item["body"].get("request") == "config"
             ):
                 name = item["body"]["name"]
                 method = item["body"]["method"]
@@ -535,10 +534,10 @@ def generate_casestep(
 
 
 def update_casestep(
-    step_body_list: List,
-    case_obj,
-    creator,
-    updater,
+        step_body_list: List,
+        case_obj,
+        creator,
+        updater,
 ):
     """
     更新测试用例步骤

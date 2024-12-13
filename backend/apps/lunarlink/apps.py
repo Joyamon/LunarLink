@@ -1,5 +1,5 @@
 from django.apps import AppConfig
 
 
-class lunarlinkConfig(AppConfig):
+class LunarlinkConfig(AppConfig):
     name = 'lunarlink'

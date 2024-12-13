@@ -1,5 +1,5 @@
 from django.apps import AppConfig
 
 
-class FastuserConfig(AppConfig):
+class LunaruserConfig(AppConfig):
     name = 'lunaruser'

@@ -42,7 +42,7 @@ urlpatterns = [
             }
         ),
     ),
-    path("project/<int:pk>", project.ProjectView.as_view({"get": "single"})),
+    path("project/<int:pk>", project.ProjectViewDetails.as_view({"get": "single"})),
     path("project/yapi/<int:pk>", project.ProjectView.as_view({"get": "yapi_info"})),
     path("dashboard", project.DashBoardView.as_view()),
     # 二叉树接口
