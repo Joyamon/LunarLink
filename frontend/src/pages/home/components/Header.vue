@@ -18,7 +18,7 @@
                 </a>
 
                 <i class="el-icon-user"></i>
-                <span style="font-size: 15px">{{ $store.state.name }}</span>
+                <span style="font-size: 15px">{{ $store.state.user }}</span>
 
                 <a style="padding-left: 10px;" @click="handleLogOut">注 销</a>
             </div>
