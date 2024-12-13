@@ -133,7 +133,6 @@ urllib3==1.26.14
 urwid==2.1.2
 user-agents==2.2.0
 uvicorn==0.17.6
-uvloop==0.17.0
 vine==5.0.0
 watchgod==0.8.2
 wcwidth==0.2.5

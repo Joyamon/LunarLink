@@ -581,8 +581,8 @@ export default {
             this.$api.getUserList().then(resp => {
                 for (let i = 0; i < resp.length; i++) {
                     this.responsibleOptions.push({
-                        label: resp[i].name,
-                        value: resp[i].name
+                        label: resp[i].username,
+                        value: resp[i].username
                     });
                 }
             });
